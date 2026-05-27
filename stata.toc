@@ -1,0 +1,9 @@
+v 1.0.0
+d Materials by Lukas Bütikofer
+d DCR Bern
+d lukas.buetikofer@unibe.ch
+d https://github.com/dcr-unibe-ch/stata_redcap
+
+d 'stata_redcap': REDCap export
+
+p stata_redcap
