@@ -9,7 +9,9 @@ program redcap_export, nclass
 version 16
 
 syntax, path(string) curl(string) api_url(string) token(string) ///
-	[additems(string) allitems(string) curlopt(string) NOIsily]
+	[additems(string) allitems(string) curlopt(string) ///
+	bindquotes(string) maxquotedrows(string) ///
+	NOIsily]
 
 
  quietly {
@@ -22,7 +24,7 @@ syntax, path(string) curl(string) api_url(string) token(string) ///
 	`noisily' redcap_api, pathraw("`path'/raw_data") ///
 		curl("`curl'") api_url("`api_url'") token("`token'") ///
 		additems(`additems') allitems(`allitems') ///
-		curlopt(`curlopt')
+		curlopt(`curlopt') bindquotes(`bindquotes') maxquotedrows(`maxquotedrows')
 
 	`noisily' redcap_label, pathraw("`path'/raw_data") ///
 		pathlab("`path'/labelled_data")
@@ -47,7 +49,7 @@ program redcap_api, nclass
 version 16
 
 syntax, pathraw(string) curl(string) api_url(string) token(string) ///
-	[additems(string) allitems(string) curlopt(string)]
+	[additems(string) allitems(string) curlopt(string) bindquotes(string) maxquotedrows(string)]
 
 
 *curl forms
@@ -92,7 +94,16 @@ dis ""
 dis as result "Curl options:"
 dis as text "`datacc' `survf' `addopt'"
 
-//use curl to export the tables to CSVs and then dta 
+*import delim options 
+if "`bindquotes'"=="" {
+	local bindquotes strict
+}
+if "`maxquotedrows'"=="" {
+	local maxquotedrows unlimited
+}
+
+
+*use curl to export the tables to CSVs and then dta 
 foreach tab of local tlist {
 	
 	dis ""
@@ -107,7 +118,7 @@ foreach tab of local tlist {
 		`addopt' ///
 		`api_url'
 	
-	qui import delim "`pathraw'/`tab'.csv", clear bindquotes(strict)  encoding(utf-8)
+	qui import delim "`pathraw'/`tab'.csv", clear bindquotes(`bindquotes') maxquotedrows(`maxquotedrows')  encoding(utf-8)
 	
 	qui save "`pathraw'/`tab'", replace
 }
@@ -115,7 +126,7 @@ foreach tab of local tlist {
 end 
 
 
-*label
+*prepare labels
 ***********
 
 cap program drop redcap_label
@@ -123,7 +134,7 @@ program redcap_label, nclass
 
 version 16
 
-syntax, pathraw(string)  pathlab(string)
+syntax, pathraw(string) pathlab(string)
 	
 *variable labels
 use "`pathraw'/metadata", clear
@@ -167,8 +178,8 @@ if `radios' > 0 {
 	
 	//replace commas if there are more than 1:
 	qui egen noc=nss(opt) , find(",")
-	assert strpos(opt,"*")==0
-	qui replace opt = reverse(subinstr(reverse(opt),",","*",noc-1))
+	assert strpos(opt,"0!??!0")==0
+	qui replace opt = reverse(subinstr(reverse(opt),",","0!??!0",noc-1))
 	qui drop noc
 	qui egen noc=nss(opt) , find(",")
 	assert noc==1
@@ -179,7 +190,7 @@ if `radios' > 0 {
 	qui drop opt
 	
 	//change back to comma
-	qui replace opt2 = subinstr(opt2,"*",",",.)
+	qui replace opt2 = subinstr(opt2,"0!??!0",",",.)
 
 	qui rename opt1 keynr
 	qui rename opt2 keytext
@@ -287,6 +298,22 @@ qui keep if strpos(text_validation_type_or_show_sli,"datetime_")>0
 qui keep field_name
 qui levelsof field_name, local(datetimevars)
 qui save "`pathlab'/datetimevars",replace
+
+
+*check for non-integers keys:
+****************
+
+use "`pathlab'/vallabels", clear
+qui count if keynr != round(keynr)
+if `r(N)'>0 {
+	dis as error "`r(N)' value levels have non-integer labels and cannot be labelled."
+}
+
+qui drop if keynr != round(keynr)
+qui recast int keynr 
+
+qui save "`pathlab'/vallabels", replace 
+
 
 
 * labeling

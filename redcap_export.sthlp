@@ -39,6 +39,10 @@
 {phang}
 {opth curlopt(string)} additional export options, separated by comma{p_end}
 {phang}
+{opt bindq:uotes(loose|strict|nobind)} Specify how to handle double quotes; see {help import delimited}{p_end}
+{phang}
+{opt maxquotedr:ows(#|unlimited)} Number of rows allowed inside a quoted string when {cmd:bindquotes(strict)} is specified; see {help import delimited}.{p_end}
+{phang}
 {opt noi:sily} Display details of the process {p_end}
 
 
