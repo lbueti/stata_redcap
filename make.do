@@ -13,7 +13,7 @@
 *generate make file 
 //cd ".."
 
-make stata_redcap, replace toc pkg version(1.0.0)                           ///
+make stata_redcap, replace toc pkg version(1.0.1)                           ///
      license("Academic Free License v3.0")                                   ///
      author("Lukas Bütikofer")                                              ///
      affiliation("DCR Bern")                                                 ///

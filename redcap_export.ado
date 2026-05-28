@@ -1,4 +1,4 @@
-*! version 1.0.0 27May2026
+*! version 1.0.1 28May2026
 
 *wrapper
 ***********
@@ -40,7 +40,7 @@ end
 	
 	
 
-*import 
+*export
 ***********
 
 cap program drop redcap_api
@@ -57,7 +57,7 @@ if "`allitems'"!="" {
 	local tlist `allitems' `additems'
 }
 else {
-	local tlist project metadata instrument arm event formEventMapping record user `additems'
+	local tlist record arm event instrument formEventMapping metadata project user  `additems'
 }
 
 
@@ -415,7 +415,7 @@ foreach f of local fname {
 			local keeplist `keeplist' `l'___*
 	}
 	
-
+	
 	use "`pathlab'/record", clear	
 	qui mmerge redcap_event_name using  "`keepforms'", type(n:1)
 	qui keep if _merge==3
@@ -424,13 +424,22 @@ foreach f of local fname {
 	label define formstat_l 0 "Incomplete" 1 "Unverified" 2 "Complete", replace	
 	label val `fs' formstat_l
 	
-	//repeating form indicator
+	//repeating forms
 	cap confirm variable redcap_repeat_instrument redcap_repeat_instance
 	if _rc {
 		qui  keep record_id redcap_event_name `keeplist' `fs'
 	}
 	else {
-		qui  keep record_id redcap_event_name  redcap_repeat_instrument redcap_repeat_instance `keeplist' `fs'
+		qui count if redcap_repeat_instrument=="`f'"
+		if `r(N)'>0 {
+			qui keep if redcap_repeat_instrument=="`f'"
+		} 
+		else {
+			qui drop if !missing(redcap_repeat_instrument)
+		}
+		
+		qui keep record_id redcap_event_name redcap_repeat_instrument redcap_repeat_instance `keeplist' `fs'
+		qui sort record_id redcap_repeat_instance
 	}
 	
 	qui save "`pathform'/`f'", replace
