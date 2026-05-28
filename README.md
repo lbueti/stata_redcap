@@ -3,7 +3,8 @@ _v. 1.0.1_
 `stata_redcap`
 ========
 
-`stata_redcap` exports data from REDCap via API, imports it into Stata and labels it.
+The `stata_redcap` package exports data from REDCap via API, imports it into Stata and labels it. 
+The main function is called `redcap_export'.
 
 Installation
 ------------
