@@ -1,4 +1,4 @@
-*! version 1.0.1 28May2026
+*! version 1.0.2 29May2026
 
 *wrapper
 ***********
@@ -373,14 +373,23 @@ version 16
 syntax, pathraw(string) pathlab(string) pathform(string)
 
 tempfile keepforms
+local eventmap 1
 
 use "`pathraw'/formEventMapping", clear
-qui rename form form_name
-qui mmerge form_name using "`pathraw'/metadata", type(n:n)
-qui assert _merge==3
-qui drop if field_type == "descriptive"
-qui save "`pathlab'/varforms", replace
-
+qui count 
+if `r(N)'!=0 {
+	qui rename form form_name
+	qui mmerge form_name using "`pathraw'/metadata", type(n:n)
+	qui assert _merge==3
+	qui drop if field_type == "descriptive"
+}
+else {
+	use "`pathraw'/metadata", clear
+	drop if field_type == "descriptive"
+	local eventmap 0
+}
+qui save "`pathlab'/varforms", replace 
+ 
 
 use "`pathlab'/varforms", clear
 
@@ -395,14 +404,19 @@ foreach f of local fname {
 	use "`pathlab'/varforms", clear
 	qui keep if form_name=="`f'"
 	
-	preserve
-	qui  keep unique_event_name
-	qui  duplicates drop
-	qui rename unique_event_name redcap_event_name
-	qui  save "`keepforms'", replace
-	restore
-	
 	local keeplist
+	
+	if `eventmap'==1 {
+		preserve
+		qui  keep unique_event_name
+		qui  duplicates drop
+		qui rename unique_event_name redcap_event_name
+		qui  save "`keepforms'", replace
+		restore
+		local keeplist redcap_event_name
+	}
+	
+	
 	
 	//non-checkbox variables
 	qui  levelsof field_name if field_type!="checkbox", local(vars) 
@@ -417,8 +431,12 @@ foreach f of local fname {
 	
 	
 	use "`pathlab'/record", clear	
-	qui mmerge redcap_event_name using  "`keepforms'", type(n:1)
-	qui keep if _merge==3
+	if `eventmap'==1 {
+		qui mmerge redcap_event_name using  "`keepforms'", type(n:1)
+		qui keep if _merge==3
+		qui drop _merge
+	}
+
 	sort record_id
 	local fs=substr("`f'_complete",1,32)
 	label define formstat_l 0 "Incomplete" 1 "Unverified" 2 "Complete", replace	
@@ -427,18 +445,20 @@ foreach f of local fname {
 	//repeating forms
 	cap confirm variable redcap_repeat_instrument redcap_repeat_instance
 	if _rc {
-		qui  keep record_id redcap_event_name `keeplist' `fs'
+		qui  keep record_id  `keeplist' `fs'
 	}
 	else {
-		qui count if redcap_repeat_instrument=="`f'"
+		qui count if !missing(redcap_repeat_instrument)
 		if `r(N)'>0 {
-			qui keep if redcap_repeat_instrument=="`f'"
-		} 
-		else {
-			qui drop if !missing(redcap_repeat_instrument)
+			qui count if redcap_repeat_instrument=="`f'"
+			if `r(N)'>0 {
+				qui keep if redcap_repeat_instrument=="`f'"
+			} 
+			else {
+				qui drop if !missing(redcap_repeat_instrument)
+			}
 		}
-		
-		qui keep record_id redcap_event_name redcap_repeat_instrument redcap_repeat_instance `keeplist' `fs'
+		qui keep record_id redcap_repeat_instrument redcap_repeat_instance `keeplist' `fs'
 		qui sort record_id redcap_repeat_instance
 	}
 	

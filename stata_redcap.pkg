@@ -1,9 +1,9 @@
-v 1.0.1
+v 1.0.2
 d 'STATA_REDCAP': stata_redcap
 d 
 d REDCap export
 d 
-d Distribution-Date:   20260528
+d Distribution-Date:   20260529
 d License: Academic Free License v3.0
 d 
 F redcap_export.ado
